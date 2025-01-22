@@ -1,0 +1,29 @@
+{
+    "name": "ondrejbakan/steamappticket",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "OndrejBakan\\SteamAppTicket\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Ondřej Bakan",
+            "email": "ondrej@bakan.cz"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/OndrejBakan/bytebuffer.git"
+        }
+    ],
+    "require": {
+        "ondrejbakan/bytebuffer": "dev-main",
+        "doctormckay/steamid": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5",
+        "friendsofphp/php-cs-fixer": "^3.68"
+    }
+}
