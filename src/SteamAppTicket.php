@@ -50,6 +50,10 @@ class SteamAppTicket
     public function __construct($ticket, bool $allowInvalidSignature = false)
     {
         $this->ticket = hex2bin($ticket);
+        if ($this->ticket === false) {
+            throw new Exception('Invalid ticket format.');
+        }
+
         $this->stream = new ByteBuffer($this->ticket);
 
         if ($this->stream->readUint32() === 20) {
@@ -66,7 +70,7 @@ class SteamAppTicket
             $this->clientConnectionCount = $this->stream->readUint32();
 
             if ($this->stream->readUint32() + $this->stream->position() != $this->stream->limit()) {
-                throw new Exception('Invalid app ticket format.');
+                throw new Exception('Invalid ticket format.');
             }
         } else {
             $this->stream->seek(-4, SEEK_CUR);
@@ -78,7 +82,7 @@ class SteamAppTicket
         if ($this->ownershipTicketOffset + $this->ownershipTicketLength != $this->stream->limit() &&
             $this->ownershipTicketOffset + $this->ownershipTicketLength + 128 != $this->stream->limit()
         ) {
-            throw new Exception('Invalid app ticket format.');
+            throw new Exception('Invalid ticket format.');
         }
 
         $this->version = $this->stream->readUint32();
