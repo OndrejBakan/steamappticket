@@ -18,7 +18,11 @@ class SteamAppTicket
     -----END PUBLIC KEY-----
     EOD;
 
+    private $ticket;
     private $stream;
+
+    private $ownershipTicketOffset;
+    private $ownershipTicketLength;
 
     public $authTicket;
     public $gcToken;
@@ -45,12 +49,15 @@ class SteamAppTicket
 
     public function __construct($ticket, bool $allowInvalidSignature = false)
     {
-        $ticket = hex2bin($ticket);
+        $this->ticket = hex2bin($ticket);
+        if ($this->ticket === false) {
+            throw new Exception('Invalid ticket format.');
+        }
 
-        $this->stream = new ByteBuffer($ticket);
+        $this->stream = new ByteBuffer($this->ticket);
 
         if ($this->stream->readUint32() === 20) {
-            $this->authTicket = substr($ticket, $this->stream->position() - 4, 52);
+            $this->authTicket = substr($this->ticket, $this->stream->position() - 4, 52);
             $this->gcToken = $this->stream->readUint64();
             $this->stream->skip(8); // SteamID
             $this->tokenGenerated = $this->stream->readUint32();
@@ -63,19 +70,19 @@ class SteamAppTicket
             $this->clientConnectionCount = $this->stream->readUint32();
 
             if ($this->stream->readUint32() + $this->stream->position() != $this->stream->limit()) {
-                throw new Exception('Invalid app ticket format.');
+                throw new Exception('Invalid ticket format.');
             }
         } else {
             $this->stream->seek(-4, SEEK_CUR);
         }
 
-        $ownershipTicketOffset = $this->stream->position();
-        $ownershipTicketLength = $this->stream->readUint32();
+        $this->ownershipTicketOffset = $this->stream->position();
+        $this->ownershipTicketLength = $this->stream->readUint32();
 
-        if ($ownershipTicketOffset + $ownershipTicketLength != $this->stream->limit()
-            && $ownershipTicketOffset + $ownershipTicketLength + 128 != $this->stream->limit()
+        if ($this->ownershipTicketOffset + $this->ownershipTicketLength != $this->stream->limit() &&
+            $this->ownershipTicketOffset + $this->ownershipTicketLength + 128 != $this->stream->limit()
         ) {
-            throw new Exception('Invalid app ticket format.');
+            throw new Exception('Invalid ticket format.');
         }
 
         $this->version = $this->stream->readUint32();
@@ -94,10 +101,10 @@ class SteamAppTicket
         $this->stream->skip(2);
 
         if ($this->stream->position() + 128 === $this->stream->limit()) {
-            $this->signature = substr($ticket, $this->stream->position(), 128);
+            $this->signature = substr($this->ticket, $this->stream->position(), 128);
         }
 
-        openssl_verify(substr($ticket, $ownershipTicketOffset, $ownershipTicketLength), $this->signature, self::STEAM_PUBLIC_KEY, OPENSSL_ALGO_SHA1) === 1
+        $this->validate()
             || $allowInvalidSignature
             || throw new Exception('Invalid app ticket signature.');
     }
@@ -130,9 +137,17 @@ class SteamAppTicket
         }
     }
 
-    public static function parse($ticket, bool $allowInvalidSignature = true): SteamAppTicket
+    public static function parse($ticket, bool $allowInvalidSignature = false): SteamAppTicket|false
     {
-        return new SteamAppTicket($ticket, $allowInvalidSignature);
+        try {
+            return new SteamAppTicket($ticket, $allowInvalidSignature);
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
+    public function validate(): bool
+    {
+        return (bool) $this->signature && openssl_verify(substr($this->ticket, $this->ownershipTicketOffset, $this->ownershipTicketLength), $this->signature, self::STEAM_PUBLIC_KEY, OPENSSL_ALGO_SHA1) === 1;
+    }
 }

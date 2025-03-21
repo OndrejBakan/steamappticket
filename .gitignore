@@ -304,3 +304,5 @@ tmp-php.ini
 #
 /vendor/
 vendor/bin/.phpunit.result.cache
+.php-cs-fixer.cache
+.php-cs-fixer.cache
