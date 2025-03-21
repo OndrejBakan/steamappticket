@@ -15,7 +15,7 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/OndrejBakan/bytebuffer"
+            "url": "https://github.com/OndrejBakan/bytebuffer.git"
         }
     ],
     "require": {
